@@ -16,7 +16,7 @@ typedef struct
     pthread_mutex_t *sumMutex;
 
     uint64_t *totalNumbersCount;
-    uint64_t numbersPerChunk;
+    uint64_t numbersOnThread;
 
     uint64_t threadsCount;
 } ThreadData;
@@ -38,7 +38,7 @@ void *calcThreadPartialSum(void *arg)
         uint64_t localNumbersCount = 0;
         char *threadSum = strdup("0");
 
-        for (uint64_t i = 0; i < threadData->numbersPerChunk; ++i)
+        for (uint64_t i = 0; i < threadData->numbersOnThread; ++i)
         {
             if (fgets(buffer, sizeof(buffer), threadData->file))
             {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     uint64_t memoryKB = strtoll(argv[2], NULL, 10);
 
     uint64_t memoryBytes = memoryKB * 1024;
-    uint64_t numbersPerChunk = memoryBytes / threadsCount / 35; // approximation for numbers-on-thread
+    uint64_t numbersOnThread = memoryBytes / threadsCount / 35; // approximation for numbers-on-thread
 
     FILE *file = fopen(argv[3], "r");
     if (!file)
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
         thread_data[i].sumMutex = &sumMutex;
         thread_data[i].fullSum = &global_sum;
         thread_data[i].totalNumbersCount = &global_count;
-        thread_data[i].numbersPerChunk = numbersPerChunk;
+        thread_data[i].numbersOnThread = numbersOnThread;
         thread_data[i].isEOF = &file_ended;
         thread_data[i].threadsCount = threadsCount;
         pthread_create(&threads[i], NULL, calcThreadPartialSum, &thread_data[i]);
