@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <string.h>
-#include <ctype.h>
 #include <time.h>
 #include "hexFuncs.h"
 
@@ -12,32 +11,27 @@ typedef struct
     char **numbers;
     uint64_t count;
 
-    char **fullSum;
-    pthread_mutex_t *sumMutex;
-
-    uint64_t *totalNumbersCount;
+    char *threadSum;
+    uint64_t threadCount;
 } ThreadData;
 
 void *calcThreadPartialSum(void *arg)
 {
     ThreadData *threadData = arg;
     char *threadSum = strdup("0");
+    uint64_t threadCount = 0;
 
     for (uint64_t i = 0; i < threadData->count; ++i)
     {
         char *sumInThread = hexSum(threadSum, threadData->numbers[i]);
         free(threadSum);
         threadSum = sumInThread;
+        ++threadCount;
     }
 
-    pthread_mutex_lock(threadData->sumMutex);
-    char *newFullSum = hexSum(threadSum, *threadData->fullSum);
-    free(*threadData->fullSum);
-    *threadData->fullSum = newFullSum;
-    *threadData->totalNumbersCount += threadData->count;
-    pthread_mutex_unlock(threadData->sumMutex);
+    threadData->threadSum = threadSum;
+    threadData->threadCount = threadCount;
 
-    free(threadSum);
     pthread_exit(NULL);
 }
 
@@ -72,9 +66,6 @@ int main(int argc, char **argv)
 
     char buffer[64];
     char **allNumbers = malloc(sizeof(char*) * maxNumbersPerIteration);
-
-    pthread_mutex_t sumMutex;
-    pthread_mutex_init(&sumMutex, NULL);
 
     char *globalSum = strdup("0");
     uint64_t globalCount = 0;
@@ -119,9 +110,8 @@ int main(int argc, char **argv)
             {
                 thread_data[i].numbers = allNumbers + startIdx;
                 thread_data[i].count = count;
-                thread_data[i].fullSum = &globalSum;
-                thread_data[i].sumMutex = &sumMutex;
-                thread_data[i].totalNumbersCount = &globalCount;
+                thread_data[i].threadSum = NULL;
+                thread_data[i].threadCount = 0;
 
                 pthread_create(&threads[i], NULL, calcThreadPartialSum, &thread_data[i]);
             }
@@ -134,6 +124,20 @@ int main(int argc, char **argv)
             if (count)
             {
                 pthread_join(threads[i], NULL);
+            }
+        }
+
+        for (uint64_t i = 0; i < threadsCount; ++i)
+        {
+            uint64_t count = numbersPerThread + (i == 0 ? remainder : 0);
+
+            if (count && thread_data[i].threadSum)
+            {
+                char* newSum = hexSum(globalSum, thread_data[i].threadSum);
+                free(globalSum);
+                globalSum = newSum;
+                free(thread_data[i].threadSum);
+                globalCount += thread_data[i].threadCount;
             }
         }
 
@@ -157,14 +161,13 @@ int main(int argc, char **argv)
     free(globalSum);
     free(threads);
     free(thread_data);
-    pthread_mutex_destroy(&sumMutex);
     fclose(file);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     double elapsed = (end.tv_sec - start.tv_sec) +
                      (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("\nExecution time: %f seconds\n", elapsed);
+    printf("\nExecution time: %lf seconds\n", elapsed);
     printf("Threads used: %lu\n", threadsCount);
 
     return 0;
