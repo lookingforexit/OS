@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <ctype.h>
 
 char* hexSum(const char* n1, const char* n2)
@@ -14,7 +15,8 @@ char* hexSum(const char* n1, const char* n2)
     char *result = malloc(resultLen);
     if (!result)
     {
-        fprintf(stderr, "Error: unable to allocate memory\n");
+        char* msg = "Error: unable to allocate memory\n";
+        write(STDOUT_FILENO, msg, strlen(msg));
         return NULL;
     }
 
@@ -53,7 +55,8 @@ char* hexSum(const char* n1, const char* n2)
     char *finalResult = malloc(strlen(result + writePos + 1) + 1);
     if (!finalResult)
     {
-        fprintf(stderr, "Error: unable to allocate memory\n");
+        char* msg = "Error: unable to allocate memory\n";
+        write(STDOUT_FILENO, msg, strlen(msg));
         free(result);
         return NULL;
     }
@@ -79,7 +82,8 @@ char* hexDivide(const char* hex, uint64_t divisor) // like floor approximation
     char *result = malloc(len + 1);
     if (!result)
     {
-        fprintf(stderr, "Error: unable to allocate memory\n");
+        char* msg = "Error: unable to allocate memory\n";
+        write(STDOUT_FILENO, msg, strlen(msg));
         return NULL;
     }
 

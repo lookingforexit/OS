@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <string.h>
 #include <time.h>
 #include "hexFuncs.h"
@@ -39,7 +40,8 @@ int main(int argc, char **argv)
 {
     if (argc != 4)
     {
-        fprintf(stderr, "Usage: ./main <threads_count> <memory_bytes> <file>\n");
+        char* msg = "Usage: ./main <threads_count> <memory_bytes> <file>\n";
+        write(STDOUT_FILENO, msg, strlen(msg));
         return 1;
     }
 
@@ -52,8 +54,9 @@ int main(int argc, char **argv)
     FILE *file = fopen(argv[3], "r");
     if (!file)
     {
-        fprintf(stderr, "Error: cannot open file\n");
-        return 1;
+        char* msg = "Error: unable to open file\n";
+        write(STDOUT_FILENO, msg, strlen(msg));
+        exit(EXIT_FAILURE);
     }
 
     uint64_t bytesPerNumber = 32 + 1 + 8;
@@ -147,13 +150,26 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("Amount of numbers: %lu\n", globalCount);
-    printf("Full sum: %s\n", globalSum);
+    {
+        char buf[64];
+        sprintf(buf,"Amount of numbers: %lu\n", globalCount);
+        write(STDOUT_FILENO, buf, strlen(buf));
+    }
+
+    {
+        char buf[64];
+        sprintf(buf,"Full sum: %s\n", globalSum);
+        write(STDOUT_FILENO, buf, strlen(buf));
+    }
 
     if (globalCount)
     {
         char *average = hexDivide(globalSum, globalCount);
-        printf("Average floored hex value: %s\n", average);
+        {
+            char buf[64];
+            sprintf(buf,"Average floored hex value: %s\n", average);
+            write(STDOUT_FILENO, buf, strlen(buf));
+        }
         free(average);
     }
 
@@ -167,8 +183,16 @@ int main(int argc, char **argv)
 
     double elapsed = (end.tv_sec - start.tv_sec) +
                      (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("\nExecution time: %lf seconds\n", elapsed);
-    printf("Threads used: %lu\n", threadsCount);
+    {
+        char buf[64];
+        sprintf(buf,"\nExecution time: %lf seconds\n", elapsed);
+        write(STDOUT_FILENO, buf, strlen(buf));
+    }
+    {
+        char buf[64];
+        sprintf(buf,"Threads used: %lu\n", threadsCount);
+        write(STDOUT_FILENO, buf, strlen(buf));
+    }
 
     return 0;
 }
